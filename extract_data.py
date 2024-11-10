@@ -3,26 +3,41 @@ import glob
 import pandas as pd
 import json
 
-# Function to clean up the data
 def clean_data(df):
     # Drop any entirely empty rows or columns
     df = df.dropna(how='all', axis=0)
     df = df.dropna(how='all', axis=1)
 
-    # Remove leading/trailing whitespace from column headers
-    df.columns = df.columns.str.strip()
+    # Normalize column names: remove leading/trailing spaces and special characters
+    df.columns = df.columns.astype(str).str.strip()  # Ensure all column names are strings and strip extra spaces
+    df.columns = df.columns.str.replace(r'[^A-Za-z0-9_]+', '_', regex=True)  # Replace special chars with '_'
 
-    # Remove leading/trailing whitespace from data in each column
-    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-
-    # Handle missing values (optional)
-    # Example: Replace NaN with 'N/A' as a placeholder
+    # Handle missing values (optional): replace NaN with 'N/A' or a placeholder of your choice
     df = df.fillna('N/A')
 
+    # Strip spaces from data in string columns
+    for column in df.columns:
+        if df[column].dtype == 'object':  # Check if the column contains strings
+            df[column] = df[column].str.strip()
+
     # Remove any columns like 'Unnamed' that may appear due to misaligned headers
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Remove columns that have 'Unnamed' in the header
 
     return df
+
+
+
+
+# Function to read and process CSV or Excel files
+def save_json(data, file_name, output_dir):
+    # Create the directory if it does not exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Save as JSON
+    json_file_path = os.path.join(output_dir, f"{file_name}.json")
+    print(f"Saving data to {json_file_path}")
+    data.to_json(json_file_path, orient='records', lines=True)  # 'records' stores rows as JSON objects
 
 # Function to read and process CSV or Excel files
 def read_file(file_path):
@@ -35,7 +50,7 @@ def read_file(file_path):
         df = clean_data(df)
         print(df)
     
-    elif file_extension == '.xlsx' or file_extension == '.xls':
+    elif file_extension in ['.xlsx', '.xls']:
         # Read Excel file using pandas (with sheet name as None to read all sheets)
         print(f"Reading Excel file: {file_path}")
         df = pd.read_excel(file_path, sheet_name=None)
@@ -50,17 +65,6 @@ def read_file(file_path):
         return None
 
     return df
-
-# Function to save DataFrame as a JSON file
-def save_json(data, file_name, output_dir):
-    # Create the directory if it does not exist
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)  # Create the output directory if it doesn't exist
-
-    # Save as JSON
-    json_file_path = os.path.join(output_dir, f"{file_name}.json")
-    print(f"Saving data to {json_file_path}")
-    data.to_json(json_file_path, orient='records', lines=True)  # 'records' stores rows as JSON objects
 
 # Function to process all files in a directory and save as JSON
 def process_files(directory_path, output_dir):
@@ -93,10 +97,8 @@ def process_files(directory_path, output_dir):
 
 # Main execution
 if __name__ == "__main__":
-    # Specify the directory containing sheets
-    input_directory = './data' 
-    output_directory = './output' 
+    input_directory = './data'  # Directory containing CSV or Excel files
+    output_directory = './output'  # Directory to save JSON files
     
     # Process all files in the directory and save the data as JSON
     process_files(input_directory, output_directory)
-
