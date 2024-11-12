@@ -5,7 +5,7 @@ import subprocess
 from read_extract import read_and_clean_excel
 from json_export import save_to_json
 from design_schema import process_json_files_from_directory
-from up_to_db import upload_sql_schemas_to_db 
+from up_to_db import upload_sql_schemas_to_db, create_mysql_dump
 
 
 # MySQL database connection configuration
@@ -86,6 +86,9 @@ if __name__ == "__main__":
     #step3: Upload SQL schemas to the database
     upload_sql_schemas_to_db(output_folder_sql, db_config)
     print("Database upload complete.")
+
+    # Step 4: Create a MySQL dump of the database
+    create_mysql_dump(db_config)
 
 
 

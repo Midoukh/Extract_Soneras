@@ -1,6 +1,5 @@
 import os
 import mysql.connector
-from mysql.connector import errorcode
 
 def connect_to_database(db_config):
     """
@@ -59,3 +58,37 @@ def upload_sql_schemas_to_db(sql_folder, db_config):
     
     cursor.close()
     conn.close()
+
+import subprocess
+import datetime
+
+def create_mysql_dump(db_config, dump_folder='./dumps'):
+    """
+    Creates a MySQL dump of the entire database.
+    
+    Parameters:
+        db_config (dict): Database connection configuration.
+        dump_folder (str): Folder to save the dump file.
+    """
+    os.makedirs(dump_folder, exist_ok=True)
+    
+    # Format the dump filename with a timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    dump_file_path = os.path.join(dump_folder, f"{db_config['database']}_dump_{timestamp}.sql")
+    
+    # Build the mysqldump command
+    dump_command = [
+        'mysqldump',
+        '-u', db_config['user'],
+        f"-p{db_config['password']}",  # Password flag
+        '-h', db_config['host'],
+        db_config['database'],
+    ]
+
+    try:
+        with open(dump_file_path, 'w') as dump_file:
+            # Run the mysqldump command, writing output to the dump file
+            subprocess.run(dump_command, stdout=dump_file, check=True)
+            print(f"Database dump created successfully: {dump_file_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error creating database dump: {e}")
